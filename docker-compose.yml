@@ -1,0 +1,55 @@
+version: '3.7'
+services:
+  postgres:
+    image: postgres:12
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgrespassword
+
+  hasura:
+    image: hasura/graphql-engine:v1.3.2.cli-migrations-v2
+    ports:
+      - '8080:8080'
+    depends_on:
+      - 'postgres'
+    restart: always
+    volumes:
+      - ./hasura/metadata:/hasura-metadata
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/postgres
+      ## enable the console served by server
+      HASURA_GRAPHQL_ENABLE_CONSOLE: 'false' # set to "false" to disable console
+
+  postgraphile:
+    ports:
+      - 8090:8090
+    depends_on:
+      - 'postgres'
+    restart: always
+    environment:
+      DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/postgres
+    build: ./postgraphile
+    command:
+      [
+        '--connection',
+        '${DATABASE_URL}',
+        '--port',
+        '8090',
+        '--schema',
+        'public',
+        '--dynamic-json',
+        '--disable-graphiql',
+        '--disable-query-log',
+        '--no-ignore-rbac',
+        '--no-ignore-indexes',
+        '--enable-query-batching',
+        '--legacy-relations',
+        'omit',
+        '--append-plugins',
+        '@graphile-contrib/pg-simplify-inflector,postgraphile-plugin-connection-filter',
+      ]
+
+volumes:
+  db_data:

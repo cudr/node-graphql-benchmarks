@@ -1,120 +1,137 @@
 #!/usr/bin/env node
-"use strict";
+'use strict'
 
-const inquirer = require("inquirer");
-const chalk = require("chalk");
-const Table = require("cli-table");
-const { join } = require("path");
-const { readdirSync, readFileSync } = require("fs");
-const { compare } = require("./lib/autocannon");
-const commander = require("commander");
+const inquirer = require('inquirer')
+const chalk = require('chalk')
+const Table = require('cli-table')
+const { join } = require('path')
+const { readdirSync, readFileSync } = require('fs')
+const commander = require('commander')
 
 commander
-  .option("-t, --table", "table")
-  .option("-p, --percentage", "percentage")
-  .option("-c --commandlineMdTable", "Print a table for use in MarkDown")
-  .parse(process.argv);
+  .option('-t, --table', 'table')
+  .option('-p, --percentage', 'percentage')
+  .option('-c --commandlineMdTable', 'Print a table for use in MarkDown')
+  .parse(process.argv)
 
-const resultsPath = join(process.cwd(), "results");
+const resultsPath = join(process.cwd(), 'results')
+
+const compare = (a, b) => {
+  const resA = require(`${resultsPath}/${a}.json`)
+  const resB = require(`${resultsPath}/${b}.json`)
+  const comp = compare(resA, resB)
+  if (comp.equal) {
+    return true
+  } else if (comp.aWins) {
+    return {
+      diff: comp.requests.difference,
+      fastest: a,
+      slowest: b,
+      fastestAverage: resA.requests.average,
+      slowestAverage: resB.requests.average,
+    }
+  }
+  return {
+    diff: compare(resB, resA).requests.difference,
+    fastest: b,
+    slowest: a,
+    fastestAverage: resB.requests.average,
+    slowestAverage: resA.requests.average,
+  }
+}
+
 let choices = readdirSync(resultsPath)
   .filter(file => file.match(/(.+)\.json$/))
   .sort()
-  .map(choice => choice.replace(".json", ""));
+  .map(choice => choice.replace('.json', ''))
 
-const bold = (writeBold, str) => (writeBold ? chalk.bold(str) : str);
+const bold = (writeBold, str) => (writeBold ? chalk.bold(str) : str)
 
 if (!choices.length) {
-  console.log(chalk.red("Benchmark to gather some results to compare."));
+  console.log(chalk.red('Benchmark to gather some results to compare.'))
 } else if (commander.table && !commander.percentage) {
   const tableSeparatorChars = commander.commandlineMdTable
     ? {
-        top: "",
-        "top-left": "",
-        "top-mid": "",
-        "top-right": "",
-        bottom: "",
-        "bottom-left": "",
-        "bottom-mid": "",
-        "bottom-right": "",
-        mid: "",
-        "left-mid": "",
-        "mid-mid": "",
-        "right-mid": "",
-        left: "|",
-        right: "|",
-        middle: "|"
+        top: '',
+        'top-left': '',
+        'top-mid': '',
+        'top-right': '',
+        bottom: '',
+        'bottom-left': '',
+        'bottom-mid': '',
+        'bottom-right': '',
+        mid: '',
+        'left-mid': '',
+        'mid-mid': '',
+        'right-mid': '',
+        left: '|',
+        right: '|',
+        middle: '|',
       }
-    : {};
+    : {}
   const table = new Table({
     chars: tableSeparatorChars,
-    head: ["Server", "Requests/s", "Latency", "Throughput/Mb"]
-  });
+    head: ['Server', 'Requests/s', 'Latency', 'Throughput/Mb'],
+  })
   if (commander.commandlineMdTable) {
-    table.push([":--", "--:", ":-:", "--:"]);
+    table.push([':--', '--:', ':-:', '--:'])
   }
 
-  let data = [];
+  let data = []
   choices.forEach(file => {
-    let content = readFileSync(`${resultsPath}/${file}.json`);
-    data.push(JSON.parse(content.toString()));
-  });
+    let content = readFileSync(`${resultsPath}/${file}.json`)
+    data.push(JSON.parse(content.toString()))
+  })
   data.sort((a, b) => {
-    return parseFloat(b.requests.mean) - parseFloat(a.requests.mean);
-  });
+    return parseFloat(b.requests.mean) - parseFloat(a.requests.mean)
+  })
 
   data.forEach((data, i) => {
     if (i === 0) {
       console.log(
         `duration: ${data.duration}s\nconnections: ${data.connections}\npipelining: ${data.pipelining}`
-      );
-      console.log("");
+      )
+      console.log('')
     }
-    const beBold = false;
+    const beBold = false
     table.push([
-      bold(
-        beBold,
-        chalk.blue(
-          commander.commandlineMdTable
-            ? `[${data.server}](https://github.com/benawad/node-graphql-benchmarks/tree/master/benchmarks/${data.server}.js)`
-            : data.server
-        )
-      ),
+      bold(beBold, chalk.blue(data.server)),
       bold(beBold, data.requests.average.toFixed(1)),
       bold(beBold, data.latency.average.toFixed(2)),
-      bold(beBold, (data.throughput.average / 1024 / 1024).toFixed(2))
-    ]);
-  });
+      bold(beBold, (data.throughput.average / 1024 / 1024).toFixed(2)),
+    ])
+  })
 
-  console.log(table.toString());
+  console.log(table.toString())
 } else if (commander.percentage) {
-  let data = [];
+  let data = []
   choices.forEach(file => {
-    let content = readFileSync(`${resultsPath}/${file}.json`);
-    data.push(JSON.parse(content.toString()));
-  });
+    let content = readFileSync(`${resultsPath}/${file}.json`)
+    data.push(JSON.parse(content.toString()))
+  })
   data.sort((a, b) => {
-    return parseFloat(b.requests.mean) - parseFloat(a.requests.mean);
-  });
+    return parseFloat(b.requests.mean) - parseFloat(a.requests.mean)
+  })
   const base = Object.assign(
     {},
     {
       name: data[0].server,
       request: data[0].requests.mean,
       latency: data[0].latency.mean,
-      throughput: data[0].throughput.mean
+      throughput: data[0].throughput.mean,
     }
-  );
+  )
   const table = new Table({
     head: [
-      "Server",
+      'Server',
       `Requests/s\n(% of ${base.name})`,
       `Latency\n(% of ${base.name})`,
-      `Throughput/Mb\n(% of ${base.name})`
-    ]
-  });
+      `Throughput/Mb\n(% of ${base.name})`,
+    ],
+  })
   data.forEach(result => {
-    const beBold = result.server === "fastify";
-    const getPct = (base, value) => ((value / base) * 100).toFixed(2);
+    const beBold = result.server === 'fastify'
+    const getPct = (base, value) => ((value / base) * 100).toFixed(2)
 
     table.push([
       bold(beBold, chalk.blue(result.server)),
@@ -135,51 +152,51 @@ if (!choices.length) {
           base.throughput,
           result.throughput.mean
         )})`
-      )
-    ]);
-  });
+      ),
+    ])
+  })
 
-  console.log(table.toString());
+  console.log(table.toString())
 } else {
   inquirer
     .prompt([
       {
-        type: "list",
-        name: "choice",
+        type: 'list',
+        name: 'choice',
         message: "What's your first pick?",
-        choices
-      }
+        choices,
+      },
     ])
     .then(firstChoice => {
-      choices = choices.filter(choice => choice !== firstChoice.choice);
+      choices = choices.filter(choice => choice !== firstChoice.choice)
       inquirer
         .prompt([
           {
-            type: "list",
-            name: "choice",
+            type: 'list',
+            name: 'choice',
             message: "What's your second one?",
-            choices
-          }
+            choices,
+          },
         ])
         .then(secondChoice => {
-          const [a, b] = [firstChoice.choice, secondChoice.choice];
-          const result = compare(a, b);
+          const [a, b] = [firstChoice.choice, secondChoice.choice]
+          const result = compare(a, b)
           if (result === true) {
-            console.log(chalk.green.bold(`${a} and ${b} both are fast!`));
+            console.log(chalk.green.bold(`${a} and ${b} both are fast!`))
           } else {
-            const fastest = chalk.bold.yellow(result.fastest);
-            const fastestAverage = chalk.green(result.fastestAverage);
-            const slowest = chalk.bold.yellow(result.slowest);
-            const slowestAverage = chalk.green(result.slowestAverage);
-            const diff = chalk.bold.green(result.diff);
+            const fastest = chalk.bold.yellow(result.fastest)
+            const fastestAverage = chalk.green(result.fastestAverage)
+            const slowest = chalk.bold.yellow(result.slowest)
+            const slowestAverage = chalk.green(result.slowestAverage)
+            const diff = chalk.bold.green(result.diff)
 
             console.log(`
- ${chalk.blue("Both are awesome but")} ${fastest} ${chalk.blue(
-              "is"
-            )} ${diff} ${chalk.blue("faster than")} ${slowest}
- • ${fastest} ${chalk.blue("request average is")} ${fastestAverage}
- • ${slowest} ${chalk.blue("request average is")} ${slowestAverage}`);
+ ${chalk.blue('Both are awesome but')} ${fastest} ${chalk.blue(
+              'is'
+            )} ${diff} ${chalk.blue('faster than')} ${slowest}
+ • ${fastest} ${chalk.blue('request average is')} ${fastestAverage}
+ • ${slowest} ${chalk.blue('request average is')} ${slowestAverage}`)
           }
-        });
-    });
+        })
+    })
 }
