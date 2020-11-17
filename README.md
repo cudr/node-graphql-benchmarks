@@ -1,6 +1,6 @@
-Postgraphile and Hasura benchmark with sample Chinook database.
+# Postgraphile and Hasura benchmark with sample Chinook database.
 
-# Usage
+### Usage
 
 You need installed docker. 
 
@@ -17,7 +17,7 @@ yarn
 yarn start
 ```
 
-# Test run on MacBook Pro:
+### Test run on MacBook Pro:
 
 duration: 10.02s
 connections: 10
