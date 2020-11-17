@@ -17,7 +17,7 @@ yarn
 yarn start
 ```
 
-# Benchmark on MacBook Pro:
+# Test run on MacBook Pro:
 
 duration: 10.02s
 connections: 10
